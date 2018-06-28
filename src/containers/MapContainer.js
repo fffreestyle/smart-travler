@@ -77,6 +77,6 @@ MapContainer.propTypes = {
   classes: PropTypes.object.isRequired,
 };
 export default withStyles(styles)(connect(mapStateToProps,mapDispatchToProps)(GoogleApiWrapper({
-	apiKey: 'AIzaSyDpE6ASlrK_fyKwheIpwS6RvmByadRFb_o',
+	apiKey: process.env.REACT_APP_GOOGLE_MAP_API,
 	libraries: ['places']
 })(MapContainer)))
