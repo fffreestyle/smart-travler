@@ -1,5 +1,6 @@
 {
-  "name": "my-app",
+  "homepage": "http://theNewJson.github.io/Smart-Traveler",
+  "name": "smart-traveler",
   "version": "0.1.0",
   "private": true,
   "dependencies": {
@@ -9,7 +10,6 @@
     "immer": "^1.3.1",
     "react": "^16.3.2",
     "react-dom": "^16.3.2",
-    "react-interactjs": "^0.1.2",
     "react-redux": "^5.0.7",
     "react-scripts": "1.1.4",
     "redux": "^4.0.0",
@@ -19,6 +19,11 @@
     "start": "react-scripts start",
     "build": "react-scripts build",
     "test": "react-scripts test --env=jsdom",
-    "eject": "react-scripts eject"
+    "eject": "react-scripts eject",
+    "predeploy": "npm run build",
+    "deploy": "gh-pages -d build"
+  },
+  "devDependencies": {
+    "gh-pages": "^1.2.0"
   }
 }
