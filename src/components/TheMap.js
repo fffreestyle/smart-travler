@@ -2,9 +2,9 @@ import React, { Component } from 'react';
 import ReactDOM from 'react-dom';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
-import Input from '@material-ui/core/Input';
 import Card from '@material-ui/core/Card';
 import CardContent from '@material-ui/core/CardContent';
+import Button from '@material-ui/core/Button';
 
 //define the styles of the map and elements on it
 const styles = theme => ({
@@ -15,13 +15,22 @@ const styles = theme => ({
 		height: '90vh',
   },
   card: {
-  	width: '30vw',
+  	width: '23vw',
+  },
+  cardContent:{
+  	padding: '8px !important',
+  	paddingBottom: '0px',
   },
   input: {
   	width: '100%',
   },
   title: {
-
+  	margin:'0 auto',
+  },
+  addLocationContainer:{
+  	margin:'10px auto',
+  	// width:'40%',
+  	display: "block",
   },
 });
 
@@ -38,20 +47,38 @@ class TheMap extends Component{
 
 	//rerender the route according to the new arrived props
 	componentWillReceiveProps(nextProps){
-		const {location} = this.props;
-		// console.log(nextProps);
-
-		//only display route when there are more than one location
-		if(nextProps.location !== undefined && nextProps.location.length > 1){
-			this.calculateAndDisplayRoute(nextProps.location);
-		}else{
+		
+		if(nextProps.focus !== this.props.focus){
+			//if the focusDay changes, clear the map
 			this.directionsDisplay.setMap(null);
+			//only display route when there are more than one location
+			if(nextProps.location.length > 0){
+				this.calculateAndDisplayRoute(nextProps.location,nextProps.travelMode);
+			}
+		}else{
+			if(nextProps.location.length !== 0){
+				//if the focusDay doesn't change, only rerender when location changes
+				console.log("HI");
+				console.log(nextProps.travelMode);
+				console.log(this.props.travelMode);
+				if(nextProps.location !== this.props.location || nextProps.travelMode !== this.props.travelMode){
+					this.calculateAndDisplayRoute(nextProps.location,nextProps.travelMode);
+				}
+			}else{
+				this.directionsDisplay.setMap(null);
+			}
 		}
 	}
 
 	//the helper function to render the route
-	calculateAndDisplayRoute(location){
-
+	calculateAndDisplayRoute(location, travelMode){
+		//if there is only one location, draw a marker and return
+		if(location.length === 1){
+			this.directionsDisplay.setMap(null);
+			this.map.setZoom(14);
+			return;
+		}
+		//else try to get the route data
 		//push the locations between the first and the last one in an array as waypoints
 		let waypoints = [];
 		for(let i = 1; i < location.length-1; i++){
@@ -67,30 +94,40 @@ class TheMap extends Component{
 			destination: location[location.length-1].address,
 			waypoints: waypoints,
 			optimizeWaypoints: false,
-			travelMode: 'DRIVING'
 		}
+		if(travelMode === 'BUS' || travelMode ==='RAIL'){
+			route.travelMode = 'TRANSIT';
+			route.transitOptions = {modes:[travelMode]};
+		}else{
+			route.travelMode = travelMode
+		}
+		console.log(route);
 		this.directionsService.route(route,(response, status) =>{
 			if(status === 'OK'){
 				this.directionsDisplay.setDirections(response);
 				this.directionsDisplay.setMap(this.map);
-			} else{
+			}else if(status === 'ZERO_RESULTS'){
+				window.alert('Cannot go to the destination by '+route.travelMode);
+				// this.directionsDisplay.setMap(null);
+			}else{
 				window.alert('Directions request failed due to '+status);
 				// this.directionsDisplay.setMap(null);
 			}});
 	}
 	mapOnClick(event){
-
+		//set the flag isPending to block other add location actions before getting the result
+    this.isPending = true;
 		//close the current infoWindow if open
 		this.infoWindow.close();
     // this.marker.setVisible(false);
-
     //if placeId exist, get details from place service
 		if(event.placeId){
+			
 			let request = {
 				placeId: event.placeId
 			};
 			this.service.getDetails(request, (results, status) => {
-				if(status = 'OK'){
+				if(status === 'OK'){
     			let place = {
 						name: results.name,
 						id: results.place_id,
@@ -98,8 +135,9 @@ class TheMap extends Component{
 					}
 					//use the callback function from mapcontainer to pass the place data
 					this.props.selectPlace(place);
-					ReactDOM.findDOMNode(this.refs.pacInput).value = place.name;
+					this.inputDom.value = place.name;
 				}
+				this.isPending = false;
 			});
 		}
 	}
@@ -148,14 +186,15 @@ class TheMap extends Component{
 				zoom:14,
 				gestureHandling:"cooperative",
 				mapTypeId: 'terrain'
-			})
+			});
 			this.map = new maps.Map(node, mapConfig);
 			this.geocoder = new maps.Geocoder();
 			this.service = new maps.places.PlacesService(this.map);
-			this.directionsService = new maps.DirectionsService;
-			this.directionsDisplay = new maps.DirectionsRenderer;
+			this.directionsService = new maps.DirectionsService();
+			this.directionsDisplay = new maps.DirectionsRenderer();
 			this.map.controls[google.maps.ControlPosition.TOP].push(ReactDOM.findDOMNode(this.refs.pac));
-			this.autocomplete = new maps.places.Autocomplete(ReactDOM.findDOMNode(this.refs.pacInput));
+			this.inputDom = ReactDOM.findDOMNode(this.refs.pacInput);
+			this.autocomplete = new maps.places.Autocomplete(this.inputDom);
       
       // Bind the map's bounds (viewport) property to the autocomplete object,
       // so that the autocomplete requests use the current map bounds for the
@@ -178,20 +217,29 @@ class TheMap extends Component{
 			<div ref="map" className={classes.mapRoot}>
 			loading map...
 			<Card className={classes.card} ref="pac">
-			<CardContent>
+			<CardContent className={classes.cardContent}>
 				<div className="title">
-		          Autocomplete search
+		        <h2>Search and add location to schedule</h2>
 		        </div>
 		        <div className={classes.pacContainer}>
 				    <input ref="pacInput"
 				    	   placeholder="Enter a location"
 					       className={classes.input}/>
 				</div>
+				<Button className={classes.addLocationContainer} 
+			  				variant="contained" 
+			  				color="primary"
+			  				onClick={e=> {
+			  					if(!this.isPending){
+			  						this.props.addPlace(e)
+			  				}}}>
+			  				Add Location
+			 	</Button>
 			</CardContent>
 			</Card>
 			<div ref="infoWindow">
 				<span id="place-name" ></span><br/>
-      			<span id="place-address"></span>
+      	<span id="place-address"></span>
 			</div>
 			</div>
 		)
