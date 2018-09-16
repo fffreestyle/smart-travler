@@ -9,6 +9,9 @@ import ExpansionPanelSummary from '@material-ui/core/ExpansionPanelSummary';
 import ExpansionPanelDetails from '@material-ui/core/ExpansionPanelDetails';
 import ExpandMoreIcon from '@material-ui/icons/ExpandMore';
 import Typography from '@material-ui/core/Typography';
+import TextField from '@material-ui/core/TextField';
+import produce from "immer";
+import TravelModeIconList from '../containers/TravelModeContainer';
 
 const styles = theme =>({
   dayRoot:{
@@ -20,7 +23,7 @@ const styles = theme =>({
     },
   },
   heading: {
-    fontSize: theme.typography.pxToRem(15),
+    fontSize: theme.typography.pxToRem(17),
     flexBasis: '20%',
     flexShrink: 0,
   },
@@ -36,34 +39,73 @@ const styles = theme =>({
     overflow: 'hidden',
     maxWidth: '30vw',
   },
-  locationContainer:{
-    // display: 'flex',
-    // flexDirection: 'column',
-    // height: '50vh',
-  },
-  scheduleContainer:{
-    width:"100%",
-    display: 'flex',
-    flexDirection: 'column',
-  },
   isFocus:{
-    boxShadow:'0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)',
+    backgroundColor: Grey[500],
+    //boxShadow:'0 4px 8px 0 rgba(0, 0, 0, 0.2), 0 6px 20px 0 rgba(0, 0, 0, 0.19)',
   },
   Chip: {
+    display: 'block',
     width: '4vw',
     height: '10vh',
     textOverflow: 'ellipsis',
     whiteSpace: 'normal',
+    margin: 'auto',
     margin: theme.spacing.unit / 2,
+  },
+  singleSchedule:{
+    margin: '2vh 0',
+  },
+  hide:{
+    display: 'none',
+  },
+  column:{
+    display: 'flex',
+    flexDirection: 'column',
+  },
+  icon: {
+    color: '#000000',
+    margin: theme.spacing.unit,
   },
 });
 
 class Day extends Component {
   constructor(props){
     super(props); 
-    this.Text = "No schedule yet!";
-  }
 
+    this.state = {
+      emptyText:"No schedule yet! Please select and add places you want to go from the map!",
+      locationTime:[]
+    }
+  }
+  componentWillReceiveProps(nextProps){
+    let {dayID,schedule} = nextProps;
+    let nextState = produce(this.state, draftState => {
+      if(schedule.day[dayID].location.length === 0){
+        draftState.emptyText = "No schedule yet! Please select and add places you want to go from the map!";
+      }else{
+        draftState.emptyText = "";
+        if(schedule.day[dayID].location !== this.props.schedule.day[dayID].location){
+          draftState.locationTime = schedule.day[dayID].location.map(location => location.startTime);
+          // console.log("cwrp");
+        } 
+      }
+    });
+    this.setState(nextState);
+
+  }
+  convertDate = (date) =>{
+    let dateString = ((date.getMonth()+1)<10 ? '0' + (date.getMonth()+1) : (date.getMonth()+1)) + '-'
+                    + ((date.getDate())<10 ? '0' + (date.getDate()) : (date.getDate()));
+    return dateString;
+  }
+  handleTimeChange = (index,dayID,value) =>{
+    // console.log(value);
+    let nextState = produce(this.state, (draftState) =>{
+      draftState.locationTime[index] = value;
+      
+    });
+    this.setState(nextState);
+  }
   handleDelete = (index, dayID) => () =>{
 
     this.props.deleteLocation(dayID,index);
@@ -74,35 +116,52 @@ class Day extends Component {
     const {schedule} = this.props;
     return (
     <div className={[schedule.day[dayID].isFocus ? classes.isFocus : ""].join(' ')} onClick={()=> this.props.onFocus(dayID)}>
-      <ExpansionPanel className={classes.dayRoot}>
+      <ExpansionPanel className={classes.dayRoot} expanded={dayID === schedule.focusDay}>
         <ExpansionPanelSummary expandIcon={<ExpandMoreIcon />}>
-          <Typography className={classes.heading}>Day : {dayID}</Typography>
-          <Typography className={classes.secondaryHeading}>
+          <Typography className={classes.heading}>
+          Day : {dayID}<br/>
+          { this.convertDate(schedule.day[dayID].date) }
+          </Typography>
+          <Typography className={[classes.secondaryHeading , schedule.day[dayID].isFocus ? classes.hide : "" ].join(' ')}>
             {schedule.day[dayID].location.map((place,index) => {
                   return (place.name)
                 }).join(',')
             }
           </Typography>
         </ExpansionPanelSummary>
-        <ExpansionPanelDetails>
-        <div className={classes.scheduleContainer}>
-            <Typography className={classes.timeHeading}>時間條</Typography>
-            <div className={classes.locationContainer}>
-              {schedule.day[dayID].location.map((place,index) => {
-              //console.log(place);
-                  return (<Chip
-                    key={index}
-                    label={place.name}
-                    onClick={()=>console.log(index)}
-                    onDelete={this.handleDelete(index,dayID)} //to do delete handle
-                  />)
+        <ExpansionPanelDetails className={classes.column}>
+          <TravelModeIconList/>
+          <Grid container>
+            {this.state.emptyText}
+            {schedule.day[dayID].location.map((place,index) => {
+                return (
+                <Grid className={classes.singleSchedule}  key={index} container>
+                  <Grid item xs={4}>
+                    <TextField
+                      id="time"
+                      type="time"
+                      value={this.state.locationTime[index]}
+                      className={classes.textField}
+                      InputLabelProps={{shrink: true,}}
+                      inputProps={{step:300}}
+                      onChange={(e) => this.handleTimeChange(index,dayID,e.target.value)}
+                      onBlur={(e)=>{this.props.updateTime(dayID,index,e.target.value)}}
+                    />
+                  </Grid>
+                  <Grid item xs={8}>
+                    <Chip
+                      key={index}
+                      label={place.name}
+                      onDelete={this.handleDelete(index,dayID)} //to do delete handle
+                      //className={classes.chip}
+                    />
+                  </Grid>
+                </Grid>)
                 })
-              }
-            </div>
-          </div>
+            }
+            </Grid>
         </ExpansionPanelDetails>
       </ExpansionPanel>
-
     </div>
     )
   }
