@@ -21,6 +21,7 @@ export class MapContainer extends Component{
 	constructor(props) {
         super(props);
         this.selectPlace = this.selectPlace.bind(this);
+        this.addPlaceOnClick = this.addPlaceOnClick.bind(this);
         this.state = {
         	place: {
         		name:null,
@@ -31,7 +32,7 @@ export class MapContainer extends Component{
         this.pacCard = React.createRef();
     }
     selectPlace(place){
-    	this.state.place = {...place};
+    	this.setState({place: {...place}}) ;
     	console.log(this.state.place);
     	// this.props.dispatch();
     }
@@ -48,16 +49,11 @@ export class MapContainer extends Component{
             google={this.props.google} 
             selectPlace={this.selectPlace} 
             pacCard = {this.pacCard}
-            location = {this.props.location}>
+            location = {this.props.location}
+            focus = {this.props.focus}
+            addPlace={this.addPlaceOnClick}
+            travelMode={this.props.travelMode}>
           </TheMap>
-					<Button
-							className={classes.addLocationContainer}
-							variant="contained"
-							color="primary"
-							onClick={(e) => {this.addPlaceOnClick(e)}}
-						>
-							Add Location
-					</Button>
    			</div>
    		)
    	}
@@ -66,6 +62,7 @@ function mapStateToProps(state){
   return {
     focus: state.locationReducer.focusDay,
     location: state.locationReducer.day[state.locationReducer.focusDay].location,
+    travelMode: state.locationReducer.day[state.locationReducer.focusDay].travelMode,
   }
 }
 function mapDispatchToProps(dispatch){

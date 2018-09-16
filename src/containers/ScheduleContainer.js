@@ -1,24 +1,19 @@
 import React, { Component } from 'react';
 import { connect } from 'react-redux';
-import { addCounter } from '../actions';
 import { bindActionCreators } from 'redux';
 import PropTypes from 'prop-types';
 import { withStyles } from '@material-ui/core/styles';
 import Grid from '@material-ui/core/Grid';
 import Day from '../components/Day'
-import { updateFocusDay,deleteLocation } from '../actions';
+import { updateFocusDay,deleteLocation,updateLocationTime,updateTravelMode } from '../actions';
 
 
 const styles = theme => ({
     scheduleContainer:{
-      height: '70vh',
-      maxHeight: '100%',
-      overflowX: 'auto',
+      //height: '70vh',
+      maxHeight: '70vh',
       overflowY: 'auto',
     },
-    spaceContent:{
-      height: '2em',
-    }
   });
 
 class ScheduleContainer extends Component {
@@ -35,7 +30,6 @@ class ScheduleContainer extends Component {
   //   return (endDate-startDate)/(24*3600*1000) + 1;  //divide by (24*3600*1000) because the unit of difference is microsecond
   // }
   focus(dayID){
-    console.log(dayID);
     this.props.actions.updateFocusDay(dayID);
   }
   render() {
@@ -46,10 +40,16 @@ class ScheduleContainer extends Component {
         <Grid item xs={12} className={ classes.scheduleContainer}>
           
             {[...Array(schedule.duration)].map(
-              (e , i) => {return <Day dayID={i+1} key={'day' + i + 1} schedule={schedule} 
-              onFocus={this.focus} deleteLocation={this.props.actions.deleteLocation}></Day>}
+              (e , i) => {return <Day 
+                    dayID={i+1} 
+                    key={'day' + i + 1} 
+                    schedule={schedule} 
+                    onFocus={this.focus} 
+                    deleteLocation={this.props.actions.deleteLocation}
+                    updateTime={this.props.actions.changeTime}
+                    >
+                </Day>}
             )}
-          <div className={classes.spaceContent}></div>
         </Grid>
       </Grid>
     )
@@ -58,8 +58,6 @@ class ScheduleContainer extends Component {
 ScheduleContainer.propTypes = {
     classes: PropTypes.object.isRequired,
 }
-
-
 function mapStateToProps(state){
   return {
     schedule: state.locationReducer
@@ -69,7 +67,9 @@ function mapDispatchToProps(dispatch){
   return{
     actions:{
       updateFocusDay: bindActionCreators(updateFocusDay, dispatch),
-      deleteLocation: bindActionCreators(deleteLocation, dispatch)
+      deleteLocation: bindActionCreators(deleteLocation, dispatch),
+      changeTime: bindActionCreators(updateLocationTime,dispatch),
+      updateTravelMode: bindActionCreators(updateTravelMode,dispatch),
     } 
   }
 }
